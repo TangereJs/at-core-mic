@@ -24,7 +24,8 @@ Example:
 -->
 
 <link rel="import" href="../polymer/polymer.html">
-<!--<link rel="import" href="../at-core-theme/at-core-theme.html">-->
+<link rel="import" href="../at-core-theme/at-core-theme.html">
+<link rel="import" href="../polymer-gestures/polymer-gestures.html">
 
 <dom-module id="at-core-mic" attributes="language transcript completeTranscript">
     <style>
@@ -130,8 +131,8 @@ Example:
         }       
     </style>
     <template>
-        <!--<at-core-theme></at-core-theme>-->
-        <div id="micContainer" class="mic-container {{ {recognizing: recognizing} | tokenList }}">
+        <at-core-theme></at-core-theme>
+        <div id="micContainer" class$="{{micContainerClasses}}">
             <div class="ring"></div>
             <div class="ring2"></div>
             <div class="icon">
@@ -149,7 +150,67 @@ Example:
     var SUPPORTED_LANGS = ['af-ZA', 'id-ID', 'ms-MY', 'ca-ES', 'cs-CZ', 'de-DE', 'en-US', 'en-AU', 'en-CA', 'en-IN', 'en-NZ', 'en-ZA', 'en-GB', 'es-AR', 'es-BO', 'es-CL', 'es-CO', 'es-CR', 'es-EC', 'es-SV', 'es-ES', 'es-US', 'es-GT', 'es-HN', 'es-MX', 'es-NI', 'es-PA', 'es-PY', 'es-PE', 'es-PR', 'es-DO', 'es-UY', 'es-VE', 'eu-ES', 'fr-FR', 'gl-ES', 'hr_HR', 'zu-ZA', 'is-IS', 'it-IT', 'it-CH', 'hu-HU', 'nl-NL', 'nb-NO', 'pl-PL', 'pt-BR', 'pt-PT', 'ro-RO', 'sk-SK', 'fi-FI', 'sv-SE', 'tr-TR', 'bg-BG', 'ru-RU', 'sr-RS', 'ko-KR', 'zh-cmn-Hans-CN', 'cmn-Hans-CN', 'cmn-Hans-HK', 'cmn-Hant-TW', 'yue-Hant-HK', 'ja-JP', 'la'];
       
     Polymer({
-      is:"at-core-mic",
+        is:"at-core-mic",
+        properties: {
+            recognition:{
+                type: Object,
+                value: function(){
+                    if (window.webkitSpeechRecognition) {
+                      this.recognition = new webkitSpeechRecognition();
+                      this.recognition.continuous = true;
+                      this.recognition.interimResults = true;
+                      this.recognition.lang = this.language;
+                      this.recognition.onstart = this.start.bind(this);
+                      this.recognition.onend = this.end.bind(this);
+                      this.recognition.onresult = this.result.bind(this);
+                      this.recognition.onerror = this.error.bind(this);
+                    } 
+                }
+            },
+            micContainerClasses: {
+                type: String,
+                value: function(){
+                    return "mic-container " + (this.recognizing ? "recognizing":"tokenList");
+                }
+             },
+            /**
+           * Specifies the language of the speech synthesis for the utterance.
+           *
+           * @attribute language
+           * @type string
+           * @default 'en-US'
+           */
+            language: {
+                type: String,
+                reflectToAttribute: true,
+                value: 'en-US',
+                observer:'languageChanged'
+             },
+            /**
+           * Returns the current transcript string.
+           *
+           * @attribute transcript
+           * @type string
+           * @default ''
+           */
+            transcript: {
+                type: String,
+                reflectToAttribute: true,
+                value: ''
+            },
+            /**
+           * Returns the complete transcript string for the continuous recognition.
+           *
+           * @attribute completeTranscript
+           * @type string
+           * @default ''
+           */
+            completeTranscript: {
+                type: String,
+                reflectToAttribute: true,
+                value: ''
+             },
+        },
       /**
        * Fired when the speech recognizer returns a result.
        * 
@@ -160,117 +221,88 @@ Example:
        *   @param {Object} detail.completeTranscript The complete transcript 
        *                   string for the continuous recognition.
        */
+            
+        /*eventDelegates: {
+            tap: 'toggleRecognition'
+        },*/
       
-      /**
-       * Returns the current transcript string.
-       *
-       * @attribute transcript
-       * @type string
-       * @default ''
-       */
-      transcript: '',
-      
-      /**
-       * Returns the complete transcript string for the continuous recognition.
-       *
-       * @attribute completeTranscript
-       * @type string
-       * @default ''
-       */
-      completeTranscript: '',
-      
-      /**
-       * Specifies the language of the speech synthesis for the utterance.
-       *
-       * @attribute language
-       * @type string
-       * @default 'en-US'
-       */
-      language: 'en-US',
-      
-      eventDelegates: {
-        tap: 'toggleRecognition'
-      },
-      
-      ready: function() {
-        if (window.webkitSpeechRecognition) {
-          this.recognition = new webkitSpeechRecognition();
-          this.recognition.continuous = true;
-          this.recognition.interimResults = true;
-          this.recognition.lang = this.language;
-          this.recognition.onstart = this.start.bind(this);
-          this.recognition.onend = this.end.bind(this);
-          this.recognition.onresult = this.result.bind(this);
-          this.recognition.onerror = this.error.bind(this);
-        } else {
-          this.style.display = 'none';
-        }
-      },
-      
-      languageChanged: function() {
-        if (!this.recognition) {
-          return;
-        }
-        this.recognition.lang = this.findSupportedLang(this.language);
-      },
-      
-      findSupportedLang: function(l) {
-        if (SUPPORTED_LANGS.indexOf(l) >= 0) {
-          return l;
-        } else {
-          var ll = l.substring(0, 2);
-          for (var i = 0, sl; sl = SUPPORTED_LANGS[i]; i++) {
-            if (sl.indexOf(ll) == 0) {
-              return sl;
+        ready: function() {
+            if (!window.webkitSpeechRecognition) {
+              this.style.display = 'none';
             }
-          }
+            else{
+                this.setAttribute('touch-action', 'none');
+                PolymerGestures.addEventListener(this, 'tap', this.toggleRecognition);
+            }
+        },
+      
+        languageChanged: function() {
+            if (!this.recognition) {
+              return;
+            }
+            this.recognition.lang = this.findSupportedLang(this.language);
+        },
+        
+        findSupportedLang: function(l) {
+            if (SUPPORTED_LANGS.indexOf(l) >= 0) {
+              return l;
+            } else {
+              var ll = l.substring(0, 2);
+              for (var i = 0, sl; sl = SUPPORTED_LANGS[i]; i++) {
+                if (sl.indexOf(ll) == 0) {
+                  return sl;
+                }
+              }
+            }
+        },
+      
+        toggleRecognition: function() {
+            if (!this.recognition) {
+                this.$.micContainer.classList.remove("recognizing");
+                return;
+            }
+            
+            if (this.recognizing) {
+                this.$.micContainer.classList.remove("recognizing");
+                this.recognition.stop();
+            } else {
+                this.$.micContainer.classList.add("recognizing");
+                this.recognition.start();
+            }
+        },
+
+        start: function(e) {
+            this.recognizing = true;
+        },
+
+        end: function() {
+            this.recognizing = false;
+        },
+
+        stop: function() {
+            this.recognition && this.recognition.stop();
+        },
+
+        result: function(e) {
+            var t, ct = '', isFinal;
+            for (var i = 0, r; r = e.results[i]; i++) {
+              t = r[0] && r[0].transcript || '';
+              ct += t;
+              isFinal = r.isFinal;
+            }
+            this.transcript = t;
+            this.completeTranscript = ct;
+            this.fire('at-core-mic-result', {
+              results: e.results,
+              transcript: t,
+              completeTranscript: ct,
+              isFinal: isFinal
+            });
+        },
+
+        error: function(e) {
+            console.log(e);
         }
-      },
-      
-      toggleRecognition: function() {
-        if (!this.recognition) {
-          return;
-        }
-        if (this.recognizing) {
-          this.recognition.stop();
-        } else {
-          this.recognition.start();
-        }
-      },
-      
-      start: function(e) {
-        this.recognizing = true;
-      },
-      
-      end: function() {
-        this.recognizing = false;
-      },
-      
-      stop: function() {
-        this.recognition && this.recognition.stop();
-      },
-      
-      result: function(e) {
-        var t, ct = '', isFinal;
-        for (var i = 0, r; r = e.results[i]; i++) {
-          t = r[0] && r[0].transcript || '';
-          ct += t;
-          isFinal = r.isFinal;
-        }
-        this.transcript = t;
-        this.completeTranscript = ct;
-        this.fire('at-core-mic-result', {
-          results: e.results,
-          transcript: t,
-          completeTranscript: ct,
-          isFinal: isFinal
-        });
-      },
-      
-      error: function(e) {
-        console.log(e);
-      }
-      
     });
   
   })();
