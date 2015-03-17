@@ -263,23 +263,24 @@ Example:
             }
             
             if (this.recognizing) {
-                this.$.micContainer.classList.remove("recognizing");
                 this.recognition.stop();
             } else {
-                this.$.micContainer.classList.add("recognizing");
                 this.recognition.start();
             }
         },
 
         start: function(e) {
+            this.$.micContainer.classList.add("recognizing");
             this.recognizing = true;
         },
 
         end: function() {
+            this.$.micContainer.classList.remove("recognizing");
             this.recognizing = false;
         },
 
         stop: function() {
+            this.$.micContainer.classList.remove("recognizing");
             this.recognition && this.recognition.stop();
         },
 
