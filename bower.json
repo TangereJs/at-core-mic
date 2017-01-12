@@ -1,0 +1,8 @@
+{
+  "name": "at-core-mic",
+  "private": true,
+  "dependencies": {
+    "tangere": "TangereJs/tangere#0.8-preview",
+    "at-doc-viewer": "TangereJs/at-doc-viewer#0.8-preview"
+  }
+}
