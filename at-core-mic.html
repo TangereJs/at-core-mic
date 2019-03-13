@@ -225,8 +225,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           tap: 'toggleRecognition'
       },*/
 
-      ready: function() {
-        if (!window.webkitSpeechRecognition) {
+      ready: function () {
+        var available = !!window.webkitSpeechRecognition
+        if (available && (window.chrome && window.chrome.runtime && !!chrome.runtime.id)) available = false; // chrome extension does not allow voice recognition
+        if (available && window.location.pathname == "/Extension") available = false;
+
+        if (!available) {
           // when now speechrocginition is detected show alternate icon (when provided) or hide completely
           if(this.alternateIcon) {
             this.$.micContainer.style.display = 'none';
